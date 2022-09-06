@@ -60,6 +60,19 @@ def cycle_through_page(driver, starting_name = None):
     return page_data
 
 
+def setup_driver(headless = True):
+    """Setup driver to scrape data
+
+    Creates a driver that can optionally be headless
+    """
+    options = uc.ChromeOptions()
+
+    if headless:
+        options.headless=True
+        options.add_argument('--headless')
+
+    return uc.Chrome(options=options)
+
 
 def scrape_tract_data():
     """Runs the whole scrape data tract process
@@ -80,11 +93,7 @@ def scrape_tract_data():
     if len(df) > 0:
         starting_name = df.iloc[-1, 0]
 
-    options = uc.ChromeOptions()
-    options.headless=True
-    options.add_argument('--headless')
-
-    driver = uc.Chrome(options=options)
+    driver = setup_driver(True)
 
     driver.get("https://apps.ilsos.gov/isa/pubdomsrch.jsp")
     county_select = Select(driver.find_element(By.ID, 'county'))
@@ -114,14 +123,9 @@ def scrape_tract_data():
     print("writing out new csv")
     df.to_csv("cook_county.csv", index=False)
 
-
 def count_total_rows():
     """Counts the number of rows on the website to confirm the total"""
-    options = uc.ChromeOptions()
-    options.headless=True
-    options.add_argument('--headless')
-    driver = uc.Chrome(options=options)
-
+    driver = setup_driver(True)
 
     driver.get("https://apps.ilsos.gov/isa/pubdomsrch.jsp")
     county_select = Select(driver.find_element(By.ID, 'county'))
