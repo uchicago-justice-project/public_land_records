@@ -1,27 +1,39 @@
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
+"""This module scrapes the land sale records for cook county from Illinois's land
+sale search website.
+"""
+
+import time
+
+import pandas as pd
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import undetected_chromedriver.v2 as uc
-import pandas as pd
 
-import time
 
 
 def get_text(driver):
-    text_array = []
-    element = WebDriverWait(driver, 10).until(
+    """Gets the text from an Illinois Public Domain Land Detail page
+
+    Scrapes all the data from the a page corresponding to a single land record
+    from the Illinois land sale search record
+    """
+    WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CLASS_NAME, "row"))
     )
     elements = driver.find_elements(By.CSS_SELECTOR, "div.col-sm-9.col-md-10")
     return [el.text for el in elements]
 
 def cycle_through_page(driver, starting_name = None):
+    """Cycles through the paginated pages on the Illinois land sale search record
+
+    Cycles through the paginated pages in the land sales search record, clicks on
+    each link and uses get_text to scrape the data on corresponding page. A starting
+    name can be indicated if not starting at the beginning.
+    """
     page_data = []
-    element = WebDriverWait(driver, 10).until(
+    WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.TAG_NAME, "tr"))
     )
     links = driver.find_elements(By.CSS_SELECTOR, "td a")
@@ -38,7 +50,7 @@ def cycle_through_page(driver, starting_name = None):
         links[i].click()
         try:
             page_data.append(get_text(driver))
-        except:
+        except TimeoutError:
             return page_data
         driver.back()
         links = driver.find_elements(By.CSS_SELECTOR, "td a")
@@ -50,10 +62,18 @@ def cycle_through_page(driver, starting_name = None):
 
 
 def scrape_tract_data():
-    cols = ['Purchaser', 'Residence', 'Social Status', 'Aliquot Parts or Lot', 'Section Number','Township', 'Range', 'Meridian', 'County of Purchase', 'Acres', 'Price per Acre', 'Total Price', 'Type of Sale', 'Date of Purchase', 'Volume', 'Page']
+    """Runs the whole scrape data tract process
+
+    Will check first if a csv file already exists and find the first name to scrape
+    based on where the document ends. Runs cycle through page to scrape data until the
+    page timesout.
+    """
+    cols = ['Purchaser', 'Residence', 'Social Status', 'Aliquot Parts or Lot', 'Section Number',\
+        'Township', 'Range', 'Meridian', 'County of Purchase', 'Acres', 'Price per Acre', \
+            'Total Price', 'Type of Sale', 'Date of Purchase', 'Volume', 'Page']
     try:
         df = pd.read_csv("cook_county.csv")
-    except:
+    except FileNotFoundError:
         df = pd.DataFrame()
 
     starting_name = None
@@ -82,8 +102,8 @@ def scrape_tract_data():
                 print("starting name reset")
             try:
                 time.sleep(1)
-                button = driver.find_element(By.CSS_SELECTOR, "input[type=submit]").click()
-            except:
+                driver.find_element(By.CSS_SELECTOR, "input[type=submit]").click()
+            except TimeoutError:
                 break
     finally:
         driver.quit()
@@ -96,6 +116,7 @@ def scrape_tract_data():
 
 
 def count_total_rows():
+    """Counts the number of rows on the website to confirm the total"""
     options = uc.ChromeOptions()
     options.headless=True
     options.add_argument('--headless')
@@ -109,22 +130,22 @@ def count_total_rows():
     count = 0
     try:
         while True:
-            element = WebDriverWait(driver, 10).until(
+            WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.TAG_NAME, "tr"))
             )
             count = count + len(driver.find_elements(By.CSS_SELECTOR, "td a"))
             try:
                 time.sleep(5)
-                button = driver.find_element(By.CSS_SELECTOR, "input[type=submit]").click()
-            except:
+                driver.find_element(By.CSS_SELECTOR, "input[type=submit]").click()
+            except TimeoutError:
                 break
     finally:
         print(count)
         driver.quit()
 
 if __name__ == "__main__":
-    count_total_rows()
-    # for _ in range(3):
-    #     scrape_tract_data()
-    #     print('pausing')
-    #     time.sleep(30)
+    # count_total_rows()
+    for _ in range(3):
+        scrape_tract_data()
+        print('pausing')
+        time.sleep(30)
