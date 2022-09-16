@@ -2,6 +2,7 @@
 sale search website.
 """
 
+import argparse
 import time
 
 import pandas as pd
@@ -12,6 +13,17 @@ from selenium.webdriver.support import expected_conditions as EC
 import undetected_chromedriver.v2 as uc
 
 
+def get_arguments():
+    parser = argparse.ArgumentParser(description='scrapes land records from Illinois Land \
+        sale search website')
+
+    parser.add_argument("--headless", action='store_true')
+    args = parser.parse_args()
+
+    if args.headless:
+        return True
+
+    return False
 
 def get_text(driver):
     """Gets the text from an Illinois Public Domain Land Detail page
@@ -74,7 +86,7 @@ def setup_driver(headless = True):
     return uc.Chrome(options=options)
 
 
-def scrape_tract_data():
+def scrape_tract_data(headless):
     """Runs the whole scrape data tract process
 
     Will check first if a csv file already exists and find the first name to scrape
@@ -93,7 +105,7 @@ def scrape_tract_data():
     if len(df) > 0:
         starting_name = df.iloc[-1, 0]
 
-    driver = setup_driver(True)
+    driver = setup_driver(headless)
 
     driver.get("https://apps.ilsos.gov/isa/pubdomsrch.jsp")
     county_select = Select(driver.find_element(By.ID, 'county'))
@@ -149,7 +161,8 @@ def count_total_rows():
 
 if __name__ == "__main__":
     # count_total_rows()
+    headless = get_arguments()
     for _ in range(3):
-        scrape_tract_data()
+        scrape_tract_data(headless)
         print('pausing')
         time.sleep(30)
