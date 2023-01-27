@@ -7,10 +7,8 @@ import time
 
 import pandas as pd
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.ui import Select, WebDriverWait
 import undetected_chromedriver.v2 as uc
 
 
@@ -165,7 +163,6 @@ def count_total_rows(county):
 
 if __name__ == "__main__":
     county, cycles, headless = get_arguments()
-    # count_total_rows(county)
 
     for _ in range(cycles):
         scrape_tract_data(headless, county)

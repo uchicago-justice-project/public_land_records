@@ -1,12 +1,14 @@
+import argparse
+from functools import cmp_to_key
+import math
+
 import numpy as np
 import geopandas as gpd
 from shapely.geometry import box
 from shapely.ops import unary_union
-from polygons import change_in_latitude, change_in_longitude, split_polygon, southwest_to_northeast
-from functools import cmp_to_key
 
-import argparse
-import math
+from polygons import change_in_latitude, change_in_longitude, split_polygon, southwest_to_northeast
+
 
 
 def get_arguments():
@@ -131,7 +133,6 @@ def clip_excess_area(newgdf, oldgdf):
     lots.sort_values(inplace=True, by=['TWPNUM', 'RNGNUM', 'SECTION', 'PART', 'INDIAN_BOUNDARY'],\
                 ascending=[True, True, True, True, True])
 
-    # lots.drop_duplicates(inplace=True, subset=['TWPNUM', 'RNGNUM', 'SECTION', 'PART', 'INDIAN_BOUNDARY'])
     lots.set_crs(oldgdf.crs)
     return lots
 
