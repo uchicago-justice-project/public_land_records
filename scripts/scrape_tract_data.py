@@ -1,4 +1,4 @@
-"""This module scrapes the land sale records for cook county from Illinois's land
+"""This module scrapes the land sale records for a given county from Illinois's land
 sale search website.
 """
 
@@ -10,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 import undetected_chromedriver.v2 as uc
 
 
@@ -17,13 +18,16 @@ def get_arguments():
     parser = argparse.ArgumentParser(description='scrapes land records from Illinois Land \
         sale search website')
 
+    parser.add_argument("county")
+    parser.add_argument("cycles", type=int)
     parser.add_argument("--headless", action='store_true')
     args = parser.parse_args()
 
+    headless = False
     if args.headless:
-        return True
+        headless = True
 
-    return False
+    return args.county, args.cycles, headless
 
 def get_text(driver):
     """Gets the text from an Illinois Public Domain Land Detail page
@@ -62,7 +66,7 @@ def cycle_through_page(driver, starting_name = None):
         links[i].click()
         try:
             page_data.append(get_text(driver))
-        except TimeoutError:
+        except:
             return page_data
         driver.back()
         links = driver.find_elements(By.CSS_SELECTOR, "td a")
@@ -86,7 +90,7 @@ def setup_driver(headless = True):
     return uc.Chrome(options=options)
 
 
-def scrape_tract_data(headless):
+def scrape_tract_data(headless, county):
     """Runs the whole scrape data tract process
 
     Will check first if a csv file already exists and find the first name to scrape
@@ -97,7 +101,7 @@ def scrape_tract_data(headless):
         'Township', 'Range', 'Meridian', 'County of Purchase', 'Acres', 'Price per Acre', \
             'Total Price', 'Type of Sale', 'Date of Purchase', 'Volume', 'Page']
     try:
-        df = pd.read_csv("cook_county.csv")
+        df = pd.read_csv(f"{county}_county.csv")
     except FileNotFoundError:
         df = pd.DataFrame()
 
@@ -109,7 +113,7 @@ def scrape_tract_data(headless):
 
     driver.get("https://apps.ilsos.gov/isa/pubdomsrch.jsp")
     county_select = Select(driver.find_element(By.ID, 'county'))
-    county_select.select_by_value("COOK")
+    county_select.select_by_value(county.upper())
     driver.find_element(By.NAME, "submit").click()
     all_data = []
     try:
@@ -124,7 +128,7 @@ def scrape_tract_data(headless):
             try:
                 time.sleep(1)
                 driver.find_element(By.CSS_SELECTOR, "input[type=submit]").click()
-            except TimeoutError:
+            except:
                 break
     finally:
         driver.quit()
@@ -133,15 +137,15 @@ def scrape_tract_data(headless):
     print(len(new_df))
     df = pd.concat([df, new_df], ignore_index=True)
     print("writing out new csv")
-    df.to_csv("cook_county.csv", index=False)
+    df.to_csv(f"{county}_county.csv", index=False)
 
-def count_total_rows():
+def count_total_rows(county):
     """Counts the number of rows on the website to confirm the total"""
     driver = setup_driver(True)
 
     driver.get("https://apps.ilsos.gov/isa/pubdomsrch.jsp")
     county_select = Select(driver.find_element(By.ID, 'county'))
-    county_select.select_by_value("COOK")
+    county_select.select_by_value(county.upper())
     driver.find_element(By.NAME, "submit").click()
     count = 0
     try:
@@ -153,16 +157,17 @@ def count_total_rows():
             try:
                 time.sleep(5)
                 driver.find_element(By.CSS_SELECTOR, "input[type=submit]").click()
-            except TimeoutError:
+            except:
                 break
     finally:
         print(count)
         driver.quit()
 
 if __name__ == "__main__":
-    # count_total_rows()
-    headless = get_arguments()
-    for _ in range(3):
-        scrape_tract_data(headless)
+    county, cycles, headless = get_arguments()
+    # count_total_rows(county)
+
+    for _ in range(cycles):
+        scrape_tract_data(headless, county)
         print('pausing')
         time.sleep(30)
